@@ -1,13 +1,14 @@
+/* jQuery */
 $(function() {
-	var FADE_TIME = 150;
-	var TYPING_TIMER_LENGTH = 400; // ms
-	var COLORS = [
+	var FADE_TIME = 150; // time for the login page to fade
+	var TYPING_TIMER_LENGTH = 400; // ms - until clear "is typing" status
+	var COLORS = [ // color for username
 	'#e21400', '#91580f', '#f8a700', '#f78b00',
 	'#58dc00', '#287b00', '#a8f07a', '#4ae8c4',
 	'#3b88eb', '#3824aa', '#a700ff', '#d300e7'
 	];
 
-	// initialize
+	// initialize elements
 	var $window = $(window);
 	var $usernameInput = $('.usernameInput');
 	var $messages = $('.messages');
@@ -24,10 +25,10 @@ $(function() {
 
 	var socket = io();
 
-	function addParticipantMessage(data) {
-		var message = '';
-		log(message);
-	}
+	// function addParticipantMessage(data) {
+	// 	var message = '';
+	// 	log(message);
+	// }
 
 	// sets username
 	function setUsername() {
@@ -38,7 +39,7 @@ $(function() {
 			$loginPage.fadeOut();
 			$chatPage.show();
 			$loginPage.off('click'); // disable loginPage
-			$currentInput = $inputMessage.focus();
+			$currentInput = $inputMessage.focus(); // allows user to type in textbox without clicking on it
 
 			// send it to the server
 			socket.emit('add user', username);
@@ -83,7 +84,36 @@ $(function() {
 			.text(data.message);
 
 		// add time
-		var messageTime = (new Date()).getHours().toString() + ':' + (new Date()).getMinutes().toString() + ':' + (new Date()).getSeconds().toString();
+		var messageTime = (new Date()).getFullYear().toString() + '/' + ((new Date()).getMonth() + 1).toString() + '/' + (new Date()).getDate().toString() + ' ' + (new Date()).getHours().toString() + ':' + (new Date()).getMinutes().toString() + ':' + (new Date()).getSeconds().toString();
+		var $messageTimeDiv = $('<span class="messageTime">')
+			.text(messageTime);
+
+		var typingClass = data.typing ? 'typing' : '';
+		var $messageDiv = $('<li class="message"/>')
+			.data('username', data.username)
+			.addClass(typingClass)
+			.append($usernameDiv, $messageBodyDiv, $messageTimeDiv);
+
+		addMessageElement($messageDiv, options);
+	}
+
+	// display history
+	function addHistoryMessage(data, options) {
+		var $typingMessages = getTypingMessages(data);
+		options = options || {}
+		if ($typingMessages.length !== 0) {
+			options.fade == false;
+			$typingMessages.remove();
+		}
+
+		var $usernameDiv = $('<span class="username"/>')
+			.text(data.username)
+			.css('color', getUsernameColor(data.username));
+		var $messageBodyDiv = $('<span class="messageBody">')
+			.text(data.message);
+
+		// add time
+		var messageTime = data.date;
 		var $messageTimeDiv = $('<span class="messageTime">')
 			.text(messageTime);
 
@@ -223,7 +253,14 @@ $(function() {
 		log(message, {
 			prepend: true
 		});
-		addParticipantMessage(data);
+		// addParticipantMessage(data);
+	});
+
+	// load history messages
+	socket.on('new connection', function(data) {
+		data.forEach(function(message){
+			addHistoryMessage(message);
+		});
 	});
 
 	// new message
@@ -232,17 +269,17 @@ $(function() {
 	});
 
 	// user joined
-	socket.on('user joined', function(data) {
-		log(data.username + ' joined');
-		addParticipantMessage(data);
-	});
+	// socket.on('user joined', function(data) {
+	// 	log(data.username + ' joined');
+	// 	addParticipantMessage(data);
+	// });
 
 	// user left
-	socket.on('user left', function(data) {
-		log(data.username + ' left');
-		addParticipantMessage(data);
-		removeChatTyping(data);
-	});
+	// socket.on('user left', function(data) {
+	// 	log(data.username + ' left');
+	// 	addParticipantMessage(data);
+	// 	removeChatTyping(data);
+	// });
 
 	// show typing
 	socket.on('typing', function(data) {
